@@ -1,9 +1,9 @@
 __precompile__()
 module OptimumPathCrack
-# Write your package code here.
+
 using DataFrames
 using CSV
-using LightGraphs
+using Graphs
 using SparseArrays
 using PyCall
 using HTTP
@@ -14,16 +14,26 @@ using Statistics
 using Distributions
 using LinearAlgebra
 using Geodesy
-using Logging
+using Memento
 import Random:rand
 
-export DisorderDist, rand
 
-
+const logger = getlogger(@__MODULE__)
 function __init__()
-    global logger = SimpleLogger(stdout, Logging.Debug)
-    global_logger(logger)
+    Memento.config!("debug"; fmt="{level}: {msg}")
+    # time_now = Dates.format(Dates.now(), "yy-mm-dd_HH_MM")
+    # log_file = "opc_$(time_now).log"
+    # hndlr = DefaultHandler(
+    #     log_file,
+    #     DefaultFormatter("{level}: {msg}")
+    #     #DictFormatter(JSON3.write)
+    # )
+    # push!(LOGGER, hndlr)
+    
+    setlevel!(logger, "debug")
+    Memento.register(logger)
 end
+
 
 include("getGoogleDirection.jl")
 include("getTravelTimes.jl")
@@ -36,6 +46,11 @@ include("crackOptimalPaths.jl")
 include("writeShapeFile.jl")
 include("writeGML.jl")
 include("DisorderDist.jl")
+
+
+export DisorderDist, rand, buildCityNetwork, buildSquareNetwork,
+cellList, crackOptimalPaths, getGoogleDirection, getMapOSM, getTravelTimes,
+odMatrix, writeGML, writeShapeFile
 
 
 end
