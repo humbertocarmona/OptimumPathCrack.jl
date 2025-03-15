@@ -1,97 +1,100 @@
-function odMatrix(ℓ::Float64,
-                    celllist::Dict{String,Any};
-                    seed::Int64 = 11,
-                    ns::Int64 = 10,
-                    nDstOrg::Int64 = 1,
-                    square::Bool = false,
-                    δ::Float64 = 0.01
-                )
+"""
+	Generates an origin-destination (OD) matrix by selecting random origins and destinations
+	within a given distance constraint.
 
-    δ = δ * ℓ # maximum error
-    Random.seed!(seed)
+	# Arguments
+	- `ℓ::Float64`: Desired travel distance between origins and destinations.
+	- `cell_list::Dict{String,Any}`: Dictionary containing spatial grid and positional information.
+	
+	# Keyword Arguments
+	- `seed::Int64=11`: Random seed for reproducibility.
+	- `n_od_pairs::Int64=10`: Number of OD pairs to generate.
+	- `δ::Float64=0.01`: Allowable deviation from the target distance.
+	
+	# Returns
+	- `Vector{Tuple{Int64, Int64}}`: A list of OD pairs as tuples of node indices.
+"""
+function OD_matrix(
+	ℓ::Float64,
+	cell_list::Dict{String, AbstractArray};
+	seed::Int64 = 1,
+	n_od_pairs::Int64 = 10,
+	δ::Float64 = 0.01)
+	Random.seed!(seed) # Set random seed for reproducibility
 
-    iℓ = Int(floor(ℓ / 100))
+	δ = δ * ℓ #  maximum allowed error based on the distance scale
+	iℓ = Int(floor(ℓ / 100)) # Convert distance to integer cell scale
 
-    pos = celllist["pos"]
-    coords = celllist["coords"]
+	# Extract relevant spatial data from the dictionary
+	pos = cell_list["pos"]
+	coords = cell_list["coords"]
 
-    nnodes = size(pos, 1)
-    dx = celllist["dx"]
-    dy = celllist["dy"]
-    nx = celllist["nx"]
-    ny = celllist["ny"]
-    cells = celllist["cells"]
-    next = celllist["next"]
+	cellSize = cell_list["cellSize"] # [dx, dy]
+	n_cells = cell_list["nCells"]# [nx, ny]
 
-    odMatrix = []
-    n = 0
-    maxorig = 0
-    while n < ns && maxorig < 100*nnodes
-        o = Random.rand(collect(1:nnodes))
-        orig = LLA(coords[o][1], coords[o][2], 0.0)
+	cells = cell_list["cells"]
+	next = cell_list["next"]
 
-        pO = pos[o]
-        cx = Int(floor(pO[1] / dx))+1
-        cy = Int(floor(pO[2] / dy)+1)
-        cO = [cx, cy]
+	n_nodes = size(pos, 1)
 
-        i0,j0 = n2ij(o, nx)
-        for k = 1:nDstOrg
-            #find a nonempty cell, size dx x dy within ℓ, random angle
-            ncelltries = 0
-            cx, cy = 0, 0
-            while ncelltries < 100
-                foundCell = false
-                trynonempy = 0
-                while !foundCell && trynonempy < 1
-                    ϕ = 2π * Random.rand()
-                    if square
-                        ϕ = Random.rand([0.0, 0.5π, π, 1.5π])
-                    end
-                    rϕ = [iℓ * cos(ϕ), iℓ * sin(ϕ)]
-                    cCell = cO + rϕ
-                    cx, cy = Int(floor(cCell[1])), Int(floor(cCell[2]))
-                    if (0 < cx < nx) && (0 < cy < ny)
-                        foundCell = (cells[cx,cy] > 0)
-                    end
-                    trynonempy = trynonempy + 1
-                end
-                if foundCell  # because trynonempy
-                    # find a destination at distance ℓ ± dx
-                    d = cells[cx, cy]
-                    foundDst = false
-                    while !foundDst && d > 0  # limited by the nodes in cell
-                        dest = LLA(coords[d][1], coords[d][2], 0.0)
-                        dist = Geodesy.distance(orig, dest)
-                        i,j = n2ij(d, nx)
-                        foundDst = (abs(dist - ℓ) < δ) && ((o, d) ∉ odMatrix)
-                        if foundDst
-                            @debug("$(n+1) ($i0, $j0) - ($i, $j) distance = $dist")
-                            if !((o,d) in odMatrix)
-                                push!(odMatrix, (o, d))
-                                n = n + 1
-                                if n ≥ ns
-                                    break
-                                end
-                            end
-                        end
-                        d = next[d]  # next node in cell
-                    end
-                    # if !foundDst
-                    #     println("\tno destination in this cell within range")
-                    # end
-                    if n ≥ ns
-                        break
-                    end
-                end
-                ncelltries = ncelltries + 1
-            end
-            if n ≥ ns
-                break
-            end
-        end
+	OD_matrix = [] # List to store OD pairs
 
-        maxorig = maxorig + 1
-    end
-    return odMatrix
+	n_orig = 0# Counter to prevent infinite loops
+
+	max_cell_tries = 100
+	n = 0# Counter for successful OD pairs
+	while n < n_od_pairs && n_orig < 100*n_nodes
+		# select one origin
+		origin_idx = Random.rand(collect(1:n_nodes)) # Select a random origin node
+
+		lat, lon = coords[origin_idx][1], coords[origin_idx][2]
+		origin_coord = LLA(lat, lon, 0.0) # Convert to geographic coordinates
+
+		# Determine the grid cell of the origin point
+		cell_origin = Int.(floor.(pos[origin_idx] ./ cellSize .+ 1))
+
+		n_cell_tries = 0 # Counter for attempts to find a valid destination cell
+
+		# Search for a non-empty destination cell within the allowed distance
+		foundCell= false
+		dst_cell = [0,0]
+		while !foundCell && n_cell_tries < max_cell_tries
+			ϕ = 2π * Random.rand() # Select a random angle
+			# ϕ = Random.rand([0.0, 0.5π, π, 1.5π]) # Restrict to 90-degree angles
+
+			cell_index_trial = [iℓ * cos(ϕ), iℓ * sin(ϕ)] # Compute displacement vector
+			cell_index_dest = cell_origin + cell_index_trial # Compute new cell location
+			dst_cell = Int.(floor.(cell_index_dest))
+
+			foundCell = all(0 < dst_cell[i] <= n_cells[i] for i in 1:2)
+			foundCell = foundCell && (cells[dst_cell[1], dst_cell[2]] > 0) # Ensure the cell is occupied
+			n_cell_tries += 1
+		end
+
+		if foundCell  # Proceed if a valid destination cell is found
+			i,j = dst_cell
+			dest_idx = cells[i,j] # Get the index of the last node in the cell
+			found_dst = false
+			while !found_dst && dest_idx > 0  # Iterate over nodes in the destination cell
+				lat, lon = coords[dest_idx]
+				dest_coord = LLA(lat, lon, 0.0) # Convert to geographic coordinates
+				dist = euclidean_distance(origin_coord, dest_coord) # Compute distance to origin
+
+				# Check distance condition and that this pair od is not in the matrix
+				found_dst = (abs(dist - ℓ) < δ) && ((origin_idx, dest_idx) ∉ OD_matrix)
+				if found_dst
+					n += 1
+					debug(logger, "$(n) ($(origin_idx), $(dest_idx)), distance = $dist")
+					push!(OD_matrix, (origin_idx, dest_idx)) # Store valid OD pair
+					if n ≥ n_od_pairs
+						break
+					end
+				end
+				dest_idx = next[dest_idx]  # Move to next node in the cell
+			end
+		end
+
+		n_orig += 1
+	end
+	return OD_matrix
 end

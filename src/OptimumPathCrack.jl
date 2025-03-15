@@ -1,39 +1,37 @@
 __precompile__()
 module OptimumPathCrack
 
-using DataFrames
 using CSV
+using DataFrames
+using Dates
+using Distributions
+using Geodesy
 using Graphs
-using SparseArrays
-using PyCall
 using HTTP
 using JSON
-using Dates
-using Random
-using Statistics
-using Distributions
 using LinearAlgebra
-using Geodesy
 using Memento
-import Random:rand
-
+using PyCall
+using Random
+using SparseArrays
+using Statistics
+import Random: rand
 
 const logger = getlogger(@__MODULE__)
 function __init__()
-    Memento.config!("debug"; fmt="{level}: {msg}")
-    # time_now = Dates.format(Dates.now(), "yy-mm-dd_HH_MM")
-    # log_file = "opc_$(time_now).log"
-    # hndlr = DefaultHandler(
-    #     log_file,
-    #     DefaultFormatter("{level}: {msg}")
-    #     #DictFormatter(JSON3.write)
-    # )
-    # push!(LOGGER, hndlr)
-    
-    setlevel!(logger, "debug")
-    Memento.register(logger)
-end
+	Memento.config!("debug"; fmt = "{level}: {msg}")
+	# time_now = Dates.format(Dates.now(), "yy-mm-dd_HH_MM")
+	# log_file = "opc_$(time_now).log"
+	# hndlr = DefaultHandler(
+	#     log_file,
+	#     DefaultFormatter("{level}: {msg}")
+	#     #DictFormatter(JSON3.write)
+	# )
+	# push!(LOGGER, hndlr)
 
+	setlevel!(logger, "debug")
+	Memento.register(logger)
+end
 
 include("getGoogleDirection.jl")
 include("getTravelTimes.jl")
@@ -47,10 +45,9 @@ include("writeShapeFile.jl")
 include("writeGML.jl")
 include("DisorderDist.jl")
 
-
 export DisorderDist, rand, buildCityNetwork, buildSquareNetwork,
-cellList, crackOptimalPaths, getGoogleDirection, getMapOSM, getTravelTimes,
-odMatrix, writeGML, writeShapeFile
-
+	cellList_lat_lon, cellList_euclidean, crackOptimalPaths, getGoogleDirection, getMapOSM,
+	getTravelTimes,
+	OD_matrix, writeGML, writeShapeFile
 
 end
