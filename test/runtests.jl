@@ -45,60 +45,79 @@ function test_buildSquareNetwork()
 end
 
 function test_cellList()
-    # Define test coordinates
-    coords = [(-3.7000,-38.6000),
-			  (-3.7001,-38.6000), 
-			  (-3.7020,-38.6000), 
-			  (-3.7021,-38.6000), 
-			  (-3.7040,-38.6000), 
-			  (-3.7041,-38.6000), 
-			  (-3.7060,-38.6000), 
-			  (-3.7061,-38.6000), 
-			  (-3.7000,-38.6010),
-			  (-3.7000,-38.6030),
-			  (-3.7000,-38.6040)]
-    cellWidth = 100.0  # Cell width in meters
-    
-    # Run the function
-    result = cellList_euclidean(coords; cellWidth=cellWidth)
-    
+	# Define test coordinates
+	coords = [(-3.7000, -38.6000),
+		(-3.7001, -38.6000),
+		(-3.7020, -38.6000),
+		(-3.7021, -38.6000),
+		(-3.7040, -38.6000),
+		(-3.7041, -38.6000),
+		(-3.7060, -38.6000),
+		(-3.7061, -38.6000),
+		(-3.7000, -38.6010),
+		(-3.7000, -38.6030),
+		(-3.7000, -38.6040)]
+	cellWidth = 100.0  # Cell width in meters
+
+	# Run the function
+	result = cellList_euclidean(coords; cellWidth = cellWidth)
+
 	display(result["cells"])
 	display(result["next"])
 	display(result["pos"])
 
-    # Extract values from the result dictionary
-    dx, dy = result["dx"], result["dy"]
-    nx, ny = result["nx"], result["ny"]
-    cells, next = result["cells"], result["next"]
-    
-    # Perform assertions
-    @test length(result["coords"]) == length(coords)  # Ensure coords are stored properly
-    @test nx > 0 && ny > 0  # Grid dimensions must be positive
-    @test size(cells) == (nx, ny)  # Ensure cell matrix matches grid size
-    @test size(next) == (length(coords),)  # Ensure next array has the correct size
-    
-    
-    println("All tests passed for cellList!")
+	# Extract values from the result dictionary
+	dx, dy = result["dx"], result["dy"]
+	nx, ny = result["nx"], result["ny"]
+	cells, next = result["cells"], result["next"]
+
+	# Perform assertions
+	@test length(result["coords"]) == length(coords)  # Ensure coords are stored properly
+	@test nx > 0 && ny > 0  # Grid dimensions must be positive
+	@test size(cells) == (nx, ny)  # Ensure cell matrix matches grid size
+	@test size(next) == (length(coords),)  # Ensure next array has the correct size
+
+	println("All tests passed for cellList!")
 end
 
 function test_OD_matrix()
 	edges_file = "data/boston-edges-4h.csv"
 	nodes_file = "data/boston-nodes.csv"
 	g, coords, distance_matrix, weight_matrix, edges_index_dict =
-	buildCityNetwork(edges_file, nodes_file)
-	cell_list = cellList_lat_lon(coords; cellWidth=100.0)
+		buildCityNetwork(edges_file, nodes_file)
+	cell_list = cellList_lat_lon(coords; cellWidth = 100.0)
 	println(typeof(cell_list))
-	n_od_pairs=1000
-    OD = OD_matrix(1000.0, cell_list, n_od_pairs=n_od_pairs)
+	n_od_pairs = 1000
+	OD = OD_matrix(1000.0, cell_list, n_od_pairs = n_od_pairs)
 
-    @test size(OD,1) == n_od_pairs  # Ensure coords are stored properly
+	@test size(OD, 1) == n_od_pairs  # Ensure coords are stored properly
+end
 
+function test_crackOptimalPaths()
+	edges_file = "data/boston-edges-4h.csv"
+	nodes_file = "data/boston-nodes.csv"
+	g, coords, distance_matrix, weight_matrix, edges_index_dict =
+		buildCityNetwork(edges_file, nodes_file)
+	cell_list = cellList_lat_lon(coords; cellWidth = 100.0)
+	n_od_pairs = 1
+	ℓ = 1000.0
+	OD = create_ODs(ℓ, cell_list, n_od_pairs = n_od_pairs)
+	orig, dest = OD[1]
+	gr, removed_edges, path_edges = crackOptimalPaths(g, orig, dest, weight_matrix)
+
+	n_removed = length(findnz(removed_edges)[1])
+	@test  maximum(removed_edges) == n_removed
+	@test  maximum(path_edges) == n_removed
 
 end
 
-@testset "cellList Tests" begin
-    test_OD_matrix()
-end
+# @testset "cracking Tests" begin
+# 	test_crackOptimalPaths()
+# end
+
+# @testset "OD matrix Tests" begin
+#     test_OD_matrix()
+# end
 
 # @testset "cellList Tests" begin
 #     test_cellList()

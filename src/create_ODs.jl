@@ -14,12 +14,12 @@
 	# Returns
 	- `Vector{Tuple{Int64, Int64}}`: A list of OD pairs as tuples of node indices.
 """
-function OD_matrix(
+function create_ODs(
 	ℓ::Float64,
 	cell_list::Dict{String, AbstractArray};
 	seed::Int64 = 1,
 	n_od_pairs::Int64 = 10,
-	δ::Float64 = 0.01)
+	δ::Float64 = 0.01) :: Vector{Tuple{Int64, Int64}}
 	Random.seed!(seed) # Set random seed for reproducibility
 
 	δ = δ * ℓ #  maximum allowed error based on the distance scale
@@ -37,7 +37,7 @@ function OD_matrix(
 
 	n_nodes = size(pos, 1)
 
-	OD_matrix = [] # List to store OD pairs
+	OD_vector = [] # List to store OD pairs
 
 	n_orig = 0# Counter to prevent infinite loops
 
@@ -81,11 +81,11 @@ function OD_matrix(
 				dist = euclidean_distance(origin_coord, dest_coord) # Compute distance to origin
 
 				# Check distance condition and that this pair od is not in the matrix
-				found_dst = (abs(dist - ℓ) < δ) && ((origin_idx, dest_idx) ∉ OD_matrix)
+				found_dst = (abs(dist - ℓ) < δ) && ((origin_idx, dest_idx) ∉ OD_vector)
 				if found_dst
 					n += 1
 					debug(logger, "$(n) ($(origin_idx), $(dest_idx)), distance = $dist")
-					push!(OD_matrix, (origin_idx, dest_idx)) # Store valid OD pair
+					push!(OD_vector, (origin_idx, dest_idx)) # Store valid OD pair
 					if n ≥ n_od_pairs
 						break
 					end
@@ -96,5 +96,5 @@ function OD_matrix(
 
 		n_orig += 1
 	end
-	return OD_matrix
+	return OD_vector
 end

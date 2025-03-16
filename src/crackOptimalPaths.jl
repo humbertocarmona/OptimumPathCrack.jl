@@ -37,31 +37,31 @@ function crackOptimalPaths(g::SimpleDiGraph, org::Int64, dst::Int64,
 	end
 
 	# Compute initial shortest paths from origin using Dijkstra's algorithm
-	dijkstra_state = LightGraphs.dijkstra_shortest_paths(
+	dijkstra_state_org = dijkstra_shortest_paths(
 		gr,
 		org,
-		distmx = weight_matrix,
+		weight_matrix,
 		allpaths = true,
 	)
 
 	# Check if there exists a path from `org` to `dst`
-	predecessors = dijkstra_state.predecessors[dst]
+	predecessors = dijkstra_state_org.predecessors[dst]
 	have_path = size(predecessors, 1) > 0
 
 	# Initialize matrices to track paths and removed edges
-	path_mx = spzeros(N, N)    # Stores the sequence of paths
-	removed_mx = spzeros(N, N) # Tracks removed edges
+	path_edges = spzeros(N, N)    # Stores the sequence of paths
+	removed_edges = spzeros(N, N) # Tracks removed edges
 	n_removed = 0              # Counter for removed edges
 
 	# Continue removing edges while a path exists and removal limit is not exceeded
 	while have_path && n_removed < nMaxRem
 		# Identify the maximum weight edge in the current shortest path
 		j = dst  # Start at the destination node
-		i = dijkstra_state.predecessors[j][1]  # Move backward along the shortest path
+		i = dijkstra_state_org.predecessors[j][1]  # Move backward along the shortest path
 
 		# Record the first discovered path in `path_mx`
-		if path_mx[i, j] == 0
-			path_mx[i, j] = n_removed + 1
+		if path_edges[i, j] == 0
+			path_edges[i, j] = n_removed + 1
 		end
 
 		# Variables to track the heaviest edge along the path
@@ -71,11 +71,12 @@ function crackOptimalPaths(g::SimpleDiGraph, org::Int64, dst::Int64,
 		# Traverse the path backwards to find the edge with the highest weight
 		while i != org
 			j = i
-			i = dijkstra_state.predecessors[j][1]
+			i = dijkstra_state_org.predecessors[j][1]
 
 			# Record the path
-			if path_mx[i, j] == 0
-				path_mx[i, j] = n_removed + 1
+			if path_edges[i, j] == 0
+				path_edges[i, j] = n_removed + 1  # edge(i,j) belongs to the 
+											   # nth path in order of removal
 			end
 
 			# Update the maximum weight edge if a heavier one is found
@@ -87,14 +88,14 @@ function crackOptimalPaths(g::SimpleDiGraph, org::Int64, dst::Int64,
 		end
 
 		# Remove the identified heaviest edge from the graph
-		removed_mx[imax, jmax] = n_removed + 1
+		removed_edges[imax, jmax] = n_removed + 1 # edge(imax, jmax) is the nth removed
 		rem_edge!(gr, imax, jmax)
 
 		# Recompute shortest paths after edge removal
-		dijkstra_state = dijkstra_shortest_paths(gr, org, weight_matrix, allpaths = true)
+		dijkstra_state_org = dijkstra_shortest_paths(gr, org, weight_matrix, allpaths = true)
 
 		# Check if a path from `org` to `dst` still exists
-		predecessors = dijkstra_state.predecessors[dst]
+		predecessors = dijkstra_state_org.predecessors[dst]
 		have_path = size(predecessors, 1) > 0
 
 		# Increment removal counter
@@ -102,5 +103,5 @@ function crackOptimalPaths(g::SimpleDiGraph, org::Int64, dst::Int64,
 	end
 
 	# Return the number of removed edges, removed edges matrix, and path matrix
-	return n_removed, removed_mx, path_mx
+	return gr, removed_edges, path_edges
 end

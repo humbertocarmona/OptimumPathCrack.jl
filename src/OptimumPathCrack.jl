@@ -39,7 +39,7 @@ include("getMapOSM.jl")
 include("buildCityNetwork.jl")
 include("buildSquareNetwork.jl")
 include("cellList.jl")
-include("odMatrix.jl")
+include("create_ODs.jl")
 include("crackOptimalPaths.jl")
 include("writeShapeFile.jl")
 include("writeGML.jl")
@@ -48,6 +48,6 @@ include("DisorderDist.jl")
 export DisorderDist, rand, buildCityNetwork, buildSquareNetwork,
 	cellList_lat_lon, cellList_euclidean, crackOptimalPaths, getGoogleDirection, getMapOSM,
 	getTravelTimes,
-	OD_matrix, writeGML, writeShapeFile
+	create_ODs, writeGML, writeShapeFile
 
 end
