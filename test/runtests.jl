@@ -99,21 +99,25 @@ function test_crackOptimalPaths()
 	g, coords, distance_matrix, weight_matrix, edges_index_dict =
 		buildCityNetwork(edges_file, nodes_file)
 	cell_list = cellList_lat_lon(coords; cellWidth = 100.0)
-	n_od_pairs = 1
+	n_od_pairs = 10
 	ℓ = 1000.0
 	OD = create_ODs(ℓ, cell_list, n_od_pairs = n_od_pairs)
-	orig, dest = OD[1]
+	orig, dest = OD[5]
 	gr, removed_edges, path_edges = crackOptimalPaths(g, orig, dest, weight_matrix)
 
 	n_removed = length(findnz(removed_edges)[1])
 	@test  maximum(removed_edges) == n_removed
 	@test  maximum(path_edges) == n_removed
-
+	writeShapeFile(g, coords, distance_matrix, weight_matrix, 
+		removed_edges=removed_edges, path_edges=path_edges, orig=orig, dest=dest)
+	writeShapeFile(g, coords, distance_matrix, weight_matrix, 
+		removed_edges=removed_edges, path_edges=path_edges, orig=orig, dest=dest,
+		out_driver="GeoJSON")
 end
 
-# @testset "cracking Tests" begin
-# 	test_crackOptimalPaths()
-# end
+@testset "cracking Tests" begin
+	test_crackOptimalPaths()
+end
 
 # @testset "OD matrix Tests" begin
 #     test_OD_matrix()

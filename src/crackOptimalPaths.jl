@@ -27,6 +27,7 @@ function crackOptimalPaths(g::SimpleDiGraph, org::Int64, dst::Int64,
 	weight_matrix::SparseMatrixCSC{Float64, Int64};
 	nMaxRem::Int64 = 0)
 
+	debug(logger, "cracking ($(org)) -> ($(dst))")
 	# Make a copy of the graph to modify during edge removals
 	gr = copy(g)
 	N = nv(gr)  # Number of nodes
@@ -49,15 +50,15 @@ function crackOptimalPaths(g::SimpleDiGraph, org::Int64, dst::Int64,
 	have_path = size(predecessors, 1) > 0
 
 	# Initialize matrices to track paths and removed edges
-	path_edges = spzeros(N, N)    # Stores the sequence of paths
-	removed_edges = spzeros(N, N) # Tracks removed edges
-	n_removed = 0              # Counter for removed edges
+	path_edges = spzeros(N, N)    	# Stores the sequence of paths
+	removed_edges = spzeros(N, N) 	# Tracks removed edges
+	n_removed = 0              		# Counter for removed edges
 
 	# Continue removing edges while a path exists and removal limit is not exceeded
 	while have_path && n_removed < nMaxRem
 		# Identify the maximum weight edge in the current shortest path
-		j = dst  # Start at the destination node
-		i = dijkstra_state_org.predecessors[j][1]  # Move backward along the shortest path
+		j = dst  									# Start at the destination node
+		i = dijkstra_state_org.predecessors[j][1]  	# Move backward along the shortest path
 
 		# Record the first discovered path in `path_mx`
 		if path_edges[i, j] == 0
@@ -102,6 +103,7 @@ function crackOptimalPaths(g::SimpleDiGraph, org::Int64, dst::Int64,
 		n_removed += 1
 	end
 
+	debug(logger, "removed $(n_removed)/$(nMaxRem)  edges")
 	# Return the number of removed edges, removed edges matrix, and path matrix
 	return gr, removed_edges, path_edges
 end
