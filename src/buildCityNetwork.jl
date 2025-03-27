@@ -67,7 +67,7 @@ function buildCityNetwork(edges_df::DataFrame, nodes_df::DataFrame)
 	@assert "length" in names(edges_df) "edges need 'length' column"
 
 	# Extract node coordinates as tuples (lat, lon)
-	coords = collect(zip(nodes_df.lat, nodes_df.lon))
+	vertices_coords = collect(zip(nodes_df.lat, nodes_df.lon))
 
 	# Sort edges by source and destination for consistency
 	#sort!(edges_df, (:src, :dst), rev = (false, false))
@@ -125,5 +125,5 @@ function buildCityNetwork(edges_df::DataFrame, nodes_df::DataFrame)
 	end
 
 	# Return the graph, node coordinates, matrices, and edge mapping
-	return g, coords, distance_matrix, weight_matrix, edges_index_dict
+	return g, vertices_coords, distance_matrix, weight_matrix, edges_index_dict
 end

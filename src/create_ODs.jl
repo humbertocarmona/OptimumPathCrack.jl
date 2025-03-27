@@ -84,7 +84,7 @@ function create_ODs(
 				found_dst = (abs(dist - ℓ) < δ) && ((origin_idx, dest_idx) ∉ OD_vector)
 				if found_dst
 					n += 1
-					debug(logger, "$(n) ($(origin_idx), $(dest_idx)), distance = $dist")
+					# ?debug(logger, "$(n) ($(origin_idx), $(dest_idx)), distance = $dist")
 					push!(OD_vector, (origin_idx, dest_idx)) # Store valid OD pair
 					if n ≥ n_od_pairs
 						break
